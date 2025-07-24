@@ -40,6 +40,11 @@ export default function SensorSurveyForm() {
   };
 
   const syncLogs = async () => {
+    if (!navigator.onLine) {
+      alert("⚠️ You're currently offline. Logs will sync when you're back online.");
+      return;
+    }
+
     const logs = JSON.parse(localStorage.getItem("sensorLogs")) || [];
     const unsyncedLogs = logs.filter(log => !log.synced);
     if (unsyncedLogs.length === 0) {
@@ -54,16 +59,15 @@ export default function SensorSurveyForm() {
         : "";
 
       const payload = {
-	    sensorCode: log.sensorCode,
-	    gDAS: log.gDAS,
-	    channel: log.channel,
-	    from: formattedFrom,
-	    to: formattedTo,
-	    duration: log.duration,
-	    coilNumber: log.coilNumber || "",
-	    comments: log.comments
-	  };
-
+        sensorCode: log.sensorCode,
+        gDAS: log.gDAS,
+        channel: log.channel,
+        from: formattedFrom,
+        to: formattedTo,
+        duration: log.duration,
+        coilNumber: log.coilNumber || "",
+        comments: log.comments
+      };
 
       try {
         const response = await fetch("https://gdas-logging-app-proxy.onrender.com/proxy", {
@@ -71,12 +75,13 @@ export default function SensorSurveyForm() {
           body: JSON.stringify(payload),
           headers: { "Content-Type": "application/json" },
         });
+
         const result = await response.text();
         console.log("Uploaded log:", result);
         log.synced = true;
       } catch (error) {
         console.error("Upload failed:", error);
-        break;
+        break; // stop trying if network fails midway
       }
     }
 
@@ -84,6 +89,7 @@ export default function SensorSurveyForm() {
     setSavedLogs(logs);
     console.log("Sync complete!");
   };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const logs = [...savedLogs];
