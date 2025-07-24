@@ -66,7 +66,7 @@ export default function SensorSurveyForm() {
 
 
       try {
-        const response = await fetch("https://sensor-logging-proxy.onrender.com/proxy", {
+        const response = await fetch("https://gdas-logging-app-proxy.onrender.com/proxy", {
           method: "POST",
           body: JSON.stringify(payload),
           headers: { "Content-Type": "application/json" },
