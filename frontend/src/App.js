@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import SensorSurveyForm from "./SensorSurveyForm";
 import SensorMap from "./SensorMap";
+import InstallPromptButton from "./components/InstallPromptButton"; // ✅ Make sure this path is correct
 
 const sensorData = [
   { Area: "North", Line: "LineA", sensorType: "Temperature", sensorTypeDetail: "Thermistor", sensorCode: "T001", UTMx: 123456, UTMy: 654321 },
@@ -27,6 +28,8 @@ function App() {
       ) : (
         <SensorMap />
       )}
+
+      <InstallPromptButton /> {/* ✅ Floating install button rendered here */}
     </div>
   );
 }
