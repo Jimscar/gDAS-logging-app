@@ -1,3 +1,4 @@
+// SensorMap.js
 import React, { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
@@ -5,7 +6,7 @@ import {
   Marker,
   Popup,
   LayersControl,
-  useMap
+  useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import proj4 from "proj4";
@@ -32,24 +33,32 @@ export default function SensorMap() {
   const [showLabels, setShowLabels] = useState(true);
   const [lastPlottedDatumZone, setLastPlottedDatumZone] = useState({
     datum: localStorage.getItem("selectedDatum"),
-    zone: localStorage.getItem("utmZone")
+    zone: localStorage.getItem("utmZone"),
   });
 
   const sensorData = JSON.parse(localStorage.getItem("sensorData")) || [];
   const logs = JSON.parse(localStorage.getItem("sensorLogs")) || [];
-
   const mapRef = useRef();
 
   useEffect(() => {
     const watchId = navigator.geolocation.watchPosition(
-      pos => {
-        const { latitude, longitude } = pos.coords;
-        setUserLocation({ lat: latitude, lon: longitude });
-      },
+      pos => setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
       err => console.error("❌ GPS error:", err.message),
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     );
     return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  // Auto-plot if sensorData, utmZone, and datum are present and not yet plotted
+  useEffect(() => {
+    if (
+      sensorData.length &&
+      utmZone &&
+      selectedDatum &&
+      (lastPlottedDatumZone.datum !== selectedDatum || lastPlottedDatumZone.zone !== utmZone)
+    ) {
+      handlePlot();
+    }
   }, []);
 
   const buildProjString = (zoneStr, datum) => {
@@ -89,8 +98,8 @@ export default function SensorMap() {
     setLastPlottedDatumZone({ datum: selectedDatum, zone: utmZone });
 
     if (groupedArray.length > 0) {
-      const lats = groupedArray.map(g => g.lat).sort((a, b) => a - b);
-      const lons = groupedArray.map(g => g.lon).sort((a, b) => a - b);
+      const lats = groupedArray.map(g => g.lat);
+      const lons = groupedArray.map(g => g.lon);
       const newCenter = [lats[Math.floor(lats.length / 2)], lons[Math.floor(lons.length / 2)]];
       setMapCenter(newCenter);
       localStorage.setItem("mapCenter", JSON.stringify(newCenter));
@@ -99,8 +108,8 @@ export default function SensorMap() {
 
   const handleResetView = () => {
     if (sensorGroups.length > 0) {
-      const lats = sensorGroups.map(g => g.lat).sort((a, b) => a - b);
-      const lons = sensorGroups.map(g => g.lon).sort((a, b) => a - b);
+      const lats = sensorGroups.map(g => g.lat);
+      const lons = sensorGroups.map(g => g.lon);
       const newCenter = [lats[Math.floor(lats.length / 2)], lons[Math.floor(lons.length / 2)]];
       setMapCenter(newCenter);
       setZoom(12);
@@ -136,36 +145,44 @@ export default function SensorMap() {
   return (
     <>
       <div style={{
-        position: "absolute", top: 10, left: 10, zIndex: 1000,
-        background: "#fff", padding: 10, borderRadius: 8
+        position: "absolute", top: 0, left: 0, width: "100%", zIndex: 1000,
+        background: "#f0f0f0", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center"
       }}>
-        <label>Datum: </label>
-        <select value={selectedDatum} onChange={e => setSelectedDatum(e.target.value)} style={{ marginRight: 10 }}>
-          <option value="">--Select--</option>
-          <option value="WGS84">WGS84</option>
-          <option value="GDA94">GDA94</option>
-          <option value="PSAD56">PSAD56</option>
-          <option value="NAD83">NAD83</option>
-        </select>
-        <label>Zone: </label>
-        <input
-          type="text"
-          value={utmZone}
-          onChange={e => setUtmZone(e.target.value)}
-          placeholder="e.g., 19S"
-          style={{ width: 60, marginRight: 10 }}
-        />
-        <button onClick={handlePlot} disabled={!utmZone || !selectedDatum}>Plot</button>
-        <button onClick={handleClear} style={{ marginLeft: 10 }}>Clear</button>
-        <button onClick={handleResetView} style={{ marginLeft: 10 }}>Reset View</button>
-        <label style={{ marginLeft: 10 }}>
+        <div>
+          <label>Datum: </label>
+          <select value={selectedDatum} onChange={e => setSelectedDatum(e.target.value)} style={{ marginRight: 10 }}>
+            <option value="">--Select--</option>
+            <option value="WGS84">WGS84</option>
+            <option value="GDA94">GDA94</option>
+            <option value="PSAD56">PSAD56</option>
+            <option value="NAD83">NAD83</option>
+          </select>
+          <label>Zone: </label>
           <input
-            type="checkbox"
-            checked={showLabels}
-            onChange={e => setShowLabels(e.target.checked)}
+            type="text"
+            value={utmZone}
+            onChange={e => setUtmZone(e.target.value)}
+            placeholder="e.g., 19S"
+            style={{ width: 60, marginRight: 10 }}
           />
-          Show Labels
-        </label>
+          <button onClick={handlePlot}>Plot</button>
+          <button onClick={handleClear} style={{ marginLeft: 10 }}>Clear</button>
+          <button onClick={handleResetView} style={{ marginLeft: 10 }}>Reset View</button>
+          <label style={{ marginLeft: 10 }}>
+            <input
+              type="checkbox"
+              checked={showLabels}
+              onChange={e => setShowLabels(e.target.checked)}
+            />
+            Show Labels
+          </label>
+        </div>
+        <button
+          onClick={() => window.location.href = "/form"}
+          style={{ padding: "6px 16px", fontWeight: "bold" }}
+        >
+          Form
+        </button>
       </div>
 
       <MapContainer
@@ -174,29 +191,22 @@ export default function SensorMap() {
         whenCreated={mapInstance => (mapRef.current = mapInstance)}
         onmoveend={handleMapMove}
         onzoomend={handleMapMove}
-        style={{ height: "100vh", width: "100%" }}
+        style={{ height: "100vh", width: "100%", marginTop: "60px" }}
       >
         <MapAutoCenter center={mapCenter} />
-
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="OpenStreetMap">
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap contributors"
-            />
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="Esri Satellite">
-            <TileLayer
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              attribution="Tiles &copy; Esri"
-            />
+            <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
           </LayersControl.BaseLayer>
         </LayersControl>
 
         {sensorGroups.map((group, idx) => {
           const isHxHyHz = group.sensors.every(s => ["Hx", "Hy", "Hz"].includes(s.sensorType));
-          const shape = isHxHyHz ? "square" : "circle";
           const markerColor = group.sensors.some(s => s.hasLog) ? "green" : "blue";
+          const shape = isHxHyHz ? "square" : "circle";
           const size = 16;
 
           const labelStack = showLabels ? group.sensors.map((s, i) => `
