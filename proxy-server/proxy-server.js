@@ -5,13 +5,24 @@ const fetch = require("node-fetch");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// CORS configuration
-app.use(cors({
-  origin: "https://gdas-logging-app-frontend.onrender.com", // ✅ Only allow your frontend
-  methods: ["POST", "GET", "OPTIONS"],
+// Replace with your actual frontend origin
+const allowedOrigin = "https://gdas-logging-app-frontend.onrender.com";
+
+// Handle preflight requests (important for POST with JSON)
+app.options("/proxy", cors({
+  origin: allowedOrigin,
+  methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"]
 }));
 
+// General CORS middleware
+app.use(cors({
+  origin: allowedOrigin,
+  methods: ["POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+// Must come after CORS
 app.use(express.json());
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVqb8Eb4MDTFfnRX-DPUsH849D93i0hqjBAPh4kY-PjR_unHMyNUT1AC19b0ovMjta8w/exec";
@@ -24,6 +35,7 @@ app.post("/proxy", async (req, res) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req.body),
     });
+
     const result = await response.text();
     console.log("✅ Response from Apps Script:", result);
     res.send(result);
