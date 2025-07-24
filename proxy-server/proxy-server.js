@@ -38,7 +38,12 @@ app.post("/proxy", async (req, res) => {
     res.status(500).send("Proxy error: " + error.message);
   }
 });
-
+app.get("/", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "https://gdas-logging-app-frontend.onrender.com");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.send("✅ Proxy is live and CORS headers are being set.");
+});
 app.listen(PORT, () => {
   console.log(`🚀 Proxy server running on port ${PORT}`);
 });
