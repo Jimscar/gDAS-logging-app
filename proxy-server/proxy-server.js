@@ -3,16 +3,15 @@ const fetch = require("node-fetch");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-
 const FRONTEND_ORIGIN = "https://gdas-logging-app-frontend.onrender.com";
 
-// Add CORS headers manually for all routes
+// ✅ Set CORS headers for all incoming requests *before* anything else
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") {
-    return res.sendStatus(204); // respond to preflight
+    return res.sendStatus(204); // Respond immediately to preflight
   }
   next();
 });
@@ -38,12 +37,14 @@ app.post("/proxy", async (req, res) => {
     res.status(500).send("Proxy error: " + error.message);
   }
 });
+
 app.get("/", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "https://gdas-logging-app-frontend.onrender.com");
+  res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.send("✅ Proxy is live and CORS headers are being set.");
 });
+
 app.listen(PORT, () => {
   console.log(`🚀 Proxy server running on port ${PORT}`);
 });
