@@ -183,21 +183,35 @@ export default function SensorSurveyForm() {
   };
 
 useEffect(() => {
-  const saved = localStorage.getItem("prefillSensor");
-  if (saved) {
-    try {
-      const sensor = JSON.parse(saved);
-      setArea(sensor.area || "");
-      setLine(sensor.line || "");
-      setSensorType(sensor.sensorType || "");
-      setSensorTypeDetail(sensor.sensorTypeDetail || "");
-      setSensorCode(sensor.sensorCode || "");
-      localStorage.removeItem("prefillSensor");
-    } catch (e) {
-      console.error("Failed to parse prefillSensor");
+  const loadPrefillSensor = () => {
+    const saved = localStorage.getItem("prefillSensor");
+    if (saved) {
+      try {
+        const sensor = JSON.parse(saved);
+        setArea(sensor.area || "");
+        setLine(sensor.line || "");
+        setSensorType(sensor.sensorType || "");
+        setSensorTypeDetail(sensor.sensorTypeDetail || "");
+        setSensorCode(sensor.sensorCode || "");
+        localStorage.removeItem("prefillSensor");
+      } catch (e) {
+        console.error("Failed to parse prefillSensor");
+      }
     }
-  }
+  };
+
+  loadPrefillSensor(); // initial load on mount
+
+  const handleStorage = (e) => {
+    if (e.key === "prefillSensor") {
+      loadPrefillSensor();
+    }
+  };
+
+  window.addEventListener("storage", handleStorage);
+  return () => window.removeEventListener("storage", handleStorage);
 }, []);
+
 useEffect(() => {
     if (installDate && installTime && pickupDate && pickupTime) {
       const installDT = new Date(`${installDate}T${installTime}`);
