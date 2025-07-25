@@ -106,11 +106,6 @@ export default function SensorMap() {
     }
   };
 
-  const handleClear = () => {
-    setSensorGroups([]);
-    setLastPlottedDatumZone({ datum: "", zone: "" });
-  };
-
   const handleResetView = () => {
     if (sensorGroups.length > 0) {
       const lats = sensorGroups.map(g => g.lat);
@@ -121,6 +116,11 @@ export default function SensorMap() {
       localStorage.setItem("mapCenter", JSON.stringify(newCenter));
       localStorage.setItem("mapZoom", "12");
     }
+  };
+
+  const handleClear = () => {
+    setSensorGroups([]);
+    setLastPlottedDatumZone({ datum: "", zone: "" });
   };
 
   const handleMapMove = () => {
@@ -162,7 +162,7 @@ export default function SensorMap() {
             type="text"
             value={utmZone}
             onChange={e => setUtmZone(e.target.value)}
-            placeholder="e.g. 19S"
+            placeholder="e.g., 19S"
             style={{ width: 60, marginRight: 10 }}
           />
           <button onClick={handlePlot}>Plot</button>
@@ -239,7 +239,7 @@ export default function SensorMap() {
               <Popup>
                 {group.sensors.map((s, i) => (
                   <div key={i}>
-                    <strong>Area:</strong> {s.Area}<br />
+                    <strong>Area:</strong> {s.area}<br />
                     <strong>Type:</strong> {s.sensorType}<br />
                     <strong>Code:</strong> {s.sensorCode}<br />
                     <strong>Status:</strong> {s.hasLog ? "✅ Logged" : "❌ Not Logged"}
