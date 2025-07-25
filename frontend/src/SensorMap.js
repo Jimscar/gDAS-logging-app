@@ -1,4 +1,4 @@
-// SensorMap.js
+// SensorMap.js (Final Cleaned Version)
 import React, { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
@@ -49,7 +49,6 @@ export default function SensorMap() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // Auto-plot if sensorData, utmZone, and datum are present and not yet plotted
   useEffect(() => {
     if (
       sensorData.length &&
@@ -144,10 +143,7 @@ export default function SensorMap() {
 
   return (
     <>
-      <div style={{
-        position: "absolute", top: 0, left: 0, width: "100%", zIndex: 1000,
-        background: "#f0f0f0", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center"
-      }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: "100%", zIndex: 1000, background: "#f0f0f0", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <label>Datum: </label>
           <select value={selectedDatum} onChange={e => setSelectedDatum(e.target.value)} style={{ marginRight: 10 }}>
@@ -158,41 +154,19 @@ export default function SensorMap() {
             <option value="NAD83">NAD83</option>
           </select>
           <label>Zone: </label>
-          <input
-            type="text"
-            value={utmZone}
-            onChange={e => setUtmZone(e.target.value)}
-            placeholder="e.g., 19S"
-            style={{ width: 60, marginRight: 10 }}
-          />
+          <input type="text" value={utmZone} onChange={e => setUtmZone(e.target.value)} placeholder="e.g., 19S" style={{ width: 60, marginRight: 10 }} />
           <button onClick={handlePlot}>Plot</button>
           <button onClick={handleClear} style={{ marginLeft: 10 }}>Clear</button>
           <button onClick={handleResetView} style={{ marginLeft: 10 }}>Reset View</button>
           <label style={{ marginLeft: 10 }}>
-            <input
-              type="checkbox"
-              checked={showLabels}
-              onChange={e => setShowLabels(e.target.checked)}
-            />
+            <input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} />
             Show Labels
           </label>
         </div>
-        <button
-          onClick={() => window.location.href = "/form"}
-          style={{ padding: "6px 16px", fontWeight: "bold" }}
-        >
-          Form
-        </button>
+        <button onClick={() => localStorage.setItem("returningFromMap", "true")} style={{ padding: "6px 16px", fontWeight: "bold" }}>Form</button>
       </div>
 
-      <MapContainer
-        center={mapCenter}
-        zoom={zoom}
-        whenCreated={mapInstance => (mapRef.current = mapInstance)}
-        onmoveend={handleMapMove}
-        onzoomend={handleMapMove}
-        style={{ height: "100vh", width: "100%", marginTop: "60px" }}
-      >
+      <MapContainer center={mapCenter} zoom={zoom} whenCreated={mapInstance => (mapRef.current = mapInstance)} onmoveend={handleMapMove} onzoomend={handleMapMove} style={{ height: "100vh", width: "100%", marginTop: "60px" }}>
         <MapAutoCenter center={mapCenter} />
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="OpenStreetMap">
@@ -209,33 +183,23 @@ export default function SensorMap() {
           const shape = isHxHyHz ? "square" : "circle";
           const size = 16;
 
-          const labelStack = showLabels ? group.sensors.map((s, i) => `
-            <div onclick="localStorage.setItem('prefillSensor', '${JSON.stringify(s).replace(/"/g, '&quot;')}'); window.location.href='/form';"
-                 style="position: absolute; top: ${-22 - i * 14}px; left: 18px;
-                        font-size: 12px; font-weight: bold; cursor: pointer; color: black;">
-              ${s.sensorCode}
-            </div>
-          `).join("") : "";
-
           const iconHtml = `
             <div style="position: relative; width: ${size}px; height: ${size}px; background: ${markerColor};
                         ${shape === "circle" ? "border-radius: 50%;" : ""}
                         border: 2px solid white;">
-              ${labelStack}
-            </div>
-          `;
+              ${showLabels ? group.sensors.map((s, i) => `<div style="position: absolute; top: ${-22 - i * 14}px; left: 18px; font-size: 12px; font-weight: bold; cursor: pointer; color: black;" data-code="${s.sensorCode}">${s.sensorCode}</div>`).join("") : ""}
+            </div>`;
 
           return (
-            <Marker
-              key={`sensor-${idx}`}
-              position={[group.lat, group.lon]}
-              icon={L.divIcon({
-                html: iconHtml,
-                iconSize: [size + 50, size + 20],
-                iconAnchor: [size / 2, size / 2],
-                className: ""
-              })}
-            >
+            <Marker key={`sensor-${idx}`} position={[group.lat, group.lon]} icon={L.divIcon({ html: iconHtml, iconSize: [size + 50, size + 20], iconAnchor: [size / 2, size / 2], className: "" })} eventHandlers={{
+              click: () => {
+                if (group.sensors.length === 1) {
+                  localStorage.setItem("prefillSensor", JSON.stringify(group.sensors[0]));
+                  localStorage.setItem("returningFromMap", "true");
+                  window.location.href = "/form";
+                }
+              }
+            }}>
               <Popup>
                 {group.sensors.map((s, i) => (
                   <div key={i}>
