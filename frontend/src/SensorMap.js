@@ -11,7 +11,6 @@ import {
 import "leaflet/dist/leaflet.css";
 import proj4 from "proj4";
 import L from "leaflet";
-import ReactDOM from "react-dom";
 
 function MapAutoCenter({ center }) {
   const map = useMap();
@@ -19,42 +18,6 @@ function MapAutoCenter({ center }) {
     map.setView(center);
   }, [center, map]);
   return null;
-}
-
-function SensorLabelStack({ sensors }) {
-  useEffect(() => {
-    sensors.forEach((sensor, i) => {
-      const el = document.getElementById(`sensor-label-${sensor.sensorCode}`);
-      if (el) {
-        el.onclick = () => {
-          localStorage.setItem("prefillSensor", JSON.stringify(sensor));
-          window.location.href = "/form";
-        };
-      }
-    });
-  }, [sensors]);
-
-  return (
-    <>
-      {sensors.map((s, i) => (
-        <div
-          id={`sensor-label-${s.sensorCode}`}
-          key={s.sensorCode}
-          style={{
-            position: "absolute",
-            top: -22 - i * 14,
-            left: 18,
-            fontSize: "12px",
-            fontWeight: "bold",
-            cursor: "pointer",
-            color: "black",
-          }}
-        >
-          {s.sensorCode}
-        </div>
-      ))}
-    </>
-  );
 }
 
 export default function SensorMap() {
@@ -86,6 +49,7 @@ export default function SensorMap() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
+  // Auto-plot if sensorData, utmZone, and datum are present and not yet plotted
   useEffect(() => {
     if (
       sensorData.length &&
@@ -142,6 +106,11 @@ export default function SensorMap() {
     }
   };
 
+  const handleClear = () => {
+    setSensorGroups([]);
+    setLastPlottedDatumZone({ datum: "", zone: "" });
+  };
+
   const handleResetView = () => {
     if (sensorGroups.length > 0) {
       const lats = sensorGroups.map(g => g.lat);
@@ -152,11 +121,6 @@ export default function SensorMap() {
       localStorage.setItem("mapCenter", JSON.stringify(newCenter));
       localStorage.setItem("mapZoom", "12");
     }
-  };
-
-  const handleClear = () => {
-    setSensorGroups([]);
-    setLastPlottedDatumZone({ datum: "", zone: "" });
   };
 
   const handleMapMove = () => {
@@ -198,7 +162,7 @@ export default function SensorMap() {
             type="text"
             value={utmZone}
             onChange={e => setUtmZone(e.target.value)}
-            placeholder="e.g., 19S"
+            placeholder="e.g. 19S"
             style={{ width: 60, marginRight: 10 }}
           />
           <button onClick={handlePlot}>Plot</button>
@@ -245,24 +209,28 @@ export default function SensorMap() {
           const shape = isHxHyHz ? "square" : "circle";
           const size = 16;
 
-          const div = document.createElement("div");
-          div.style.position = "relative";
-          div.style.width = `${size}px`;
-          div.style.height = `${size}px`;
-          div.style.background = markerColor;
-          div.style.border = "2px solid white";
-          if (shape === "circle") div.style.borderRadius = "50%";
+          const labelStack = showLabels ? group.sensors.map((s, i) => `
+            <div onclick="localStorage.setItem('prefillSensor', '${JSON.stringify(s).replace(/"/g, '&quot;')}'); window.location.href='/form';"
+                 style="position: absolute; top: ${-22 - i * 14}px; left: 18px;
+                        font-size: 12px; font-weight: bold; cursor: pointer; color: black;">
+              ${s.sensorCode}
+            </div>
+          `).join("") : "";
 
-          if (showLabels) {
-            ReactDOM.render(<SensorLabelStack sensors={group.sensors} />, div);
-          }
+          const iconHtml = `
+            <div style="position: relative; width: ${size}px; height: ${size}px; background: ${markerColor};
+                        ${shape === "circle" ? "border-radius: 50%;" : ""}
+                        border: 2px solid white;">
+              ${labelStack}
+            </div>
+          `;
 
           return (
             <Marker
               key={`sensor-${idx}`}
               position={[group.lat, group.lon]}
               icon={L.divIcon({
-                html: div.outerHTML,
+                html: iconHtml,
                 iconSize: [size + 50, size + 20],
                 iconAnchor: [size / 2, size / 2],
                 className: ""
@@ -271,7 +239,7 @@ export default function SensorMap() {
               <Popup>
                 {group.sensors.map((s, i) => (
                   <div key={i}>
-                    <strong>Area:</strong> {s.area}<br />
+                    <strong>Area:</strong> {s.Area}<br />
                     <strong>Type:</strong> {s.sensorType}<br />
                     <strong>Code:</strong> {s.sensorCode}<br />
                     <strong>Status:</strong> {s.hasLog ? "✅ Logged" : "❌ Not Logged"}
